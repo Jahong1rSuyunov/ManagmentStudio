@@ -1,0 +1,41 @@
+﻿@page "/index"
+@using Microsoft.AspNetCore.WebUtilities
+@inject NavigationManager navManager
+@inject ManagmentStudio.Cleant.Services.IServerService serverService
+
+<MudThemeProvider/>
+
+
+<NavMenu QueryId="QuerySet" ConnectorType="@ConnectorType" DbList="@dbList" />
+
+    @*<RunQuery QueryId="@QueryId" ConnectorType="@ConnectorType"/>*@
+
+<QueryComponent QueryId="@QueryId" ConnectorType="@ConnectorType" DbList="@dbList" />
+
+@code{
+    [Parameter]
+    public int QueryId{ get; set; }
+
+    public string? ConnectorType;
+    private List<string> dbList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        dbList = await serverService.GetDatabases();
+
+        var uri = navManager.ToAbsoluteUri(navManager.Uri);
+
+        var queryString = QueryHelpers.ParseQuery(uri.Query);
+        if(queryString.TryGetValue("ConnectorType", out var connectorType))
+        {
+            this.ConnectorType = connectorType;
+        }
+    }
+    protected void QuerySet(int QueryId)
+    {
+        this.QueryId = QueryId;
+        StateHasChanged();
+    }
+
+
+}

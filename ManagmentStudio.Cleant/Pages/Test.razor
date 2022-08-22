@@ -1,0 +1,30 @@
+﻿@page "/test"
+@using ManagmentStudio.Shared
+@inject ManagmentStudio.Cleant.Services.IServerService serverService 
+@inject ManagmentStudio.Cleant.Services.IQueryService queryService
+
+<h3>Test</h3>
+
+<MudTreeView T="string">
+    @foreach (var item in DbList)
+    {
+        <MudTreeViewItem Value="item">
+            <MudTreeViewItem Value="item" />
+        </MudTreeViewItem>
+    }
+    
+</MudTreeView>
+
+@code {
+    private List<string> DbList = new ();
+    private ResultSet resultSet = new ();
+
+    protected override async Task OnInitializedAsync()
+    {
+        DbList = await serverService.GetDatabases();
+        resultSet = await serverService.ExecuteQuery("Staff", "Select * from Staff");
+        var dbTable = await serverService.GetTables("Staff");
+        var wqwqw = await queryService.GetQueries("MSSQL");
+        var sdancw = await queryService.GetQuery(5);
+    }
+}

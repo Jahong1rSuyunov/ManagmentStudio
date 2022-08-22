@@ -1,0 +1,152 @@
+﻿@using ManagmentStudio.Shared
+
+@inject IDialogService DilaogService
+@inject ManagmentStudio.Cleant.Services.IQueryService QueryService
+@inject ManagmentStudio.Cleant.Services.IServerService ServerService
+@inject NavigationManager navManager
+
+
+
+<MudAppBar Style="@($"background-color:{Colors.BlueGrey.Default}")" Elevation="1">
+    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+    <MudText Typo="Typo.h5" Class="ml-3"> Managment Studio  </MudText>
+    <MudSpacer />
+    <MudFab OnClick="ShowDialog" Icon="@Icons.Filled.SaveAs" Color="Color.Inherit" Label="Saved Queries" />
+    <MudFab Icon="@Icons.Filled.Login" Href="/" Color="Color.Inherit" Label="Log Out" />
+</MudAppBar>
+
+<MudDrawer @bind-Open="_drawerOpen" Style="@($"background-color:{Colors.BlueGrey.Lighten3}")" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h5" Class="mt-1">DB List</MudText>
+    </MudDrawerHeader>
+    @if (DbList == null)
+    {
+        
+    }
+    else
+    {
+
+        @foreach (var item in DbList)
+        {
+            <MudTreeView T="string">
+                <MudTreeViewItem Value="item">
+                        @foreach (var table in ServerService.GetTables(item).Result)
+                        {
+                            <MudTreeViewItem Icon="@Icons.Filled.TableChart" Value="table" />
+                        }
+                </MudTreeViewItem>
+            </MudTreeView>
+        }
+    }
+
+</MudDrawer>
+
+
+<MudDialog @bind-IsVisible="visible" ContentStyle="height: auto;width: auto;">
+    <DialogContent>
+
+        <MudSimpleTable Style="@($"overflow-x: auto;width:auto;height:405px;")">
+            @if (Queries == null)
+            {
+                <h1>Loding....</h1>
+            }
+            else{
+                <thead>
+                    <tr>
+                        <th>Queryies</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Queries)
+                    {
+                        <tr>
+                            <td style="width:150px">@item.QueryName</td>
+                            <td>
+                                <MudIconButton OnClick="@((e) => Submit(item.QueryId))" Icon="@Icons.Material.Filled.FileDownloadDone"></MudIconButton>
+                                <MudIconButton OnClick="@((e) => Edit(item))" Icon="@Icons.Material.Filled.Edit"></MudIconButton>
+                                <MudIconButton OnClick="@((e) => DeleteQuery(item))" Icon="@Icons.Material.Filled.Delete"></MudIconButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            }
+        </MudSimpleTable>
+
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+
+@code {
+    [Parameter]
+    public List<string>? DbList { get; set; }
+
+    [Parameter]
+    public string ConnectorType { get; set; }
+
+    [Parameter]
+    public EventCallback<int> QueryId { get; set; }
+
+    [Parameter]
+    public int Id { get; set; }
+
+    private List<Query> Queries = new();
+    private List<string> TableList = new();
+
+    bool _drawerOpen = true;
+    private bool visible;
+    private string? dbName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+    }
+
+    async Task<List<string>> GetTables(string dbName)
+    {
+        return TableList = await ServerService.GetTables(dbName);
+    }
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private async Task ShowDialog()
+    {
+        visible = true;
+        Queries = await QueryService.GetQueries(ConnectorType);
+
+    }
+    private void Cancel() => visible = false;
+    private async Task DeleteQuery(Query query)
+    {
+        await QueryService.Delete(query.QueryId);
+        Queries = await QueryService.GetQueries(ConnectorType);
+        StateHasChanged();
+    }
+    private async Task Edit(Query query)
+    {
+        var parametrs = new DialogParameters { ["query"] = query };
+        var dialog = DilaogService.Show<UpdateDialog>("Edit Query", parametrs);
+        var resault = await dialog.Result;
+        if (!resault.Cancelled)
+        {
+            var obj = (Query)resault.Data;
+            await QueryService.UpdateQuery(obj);
+            await ShowDialog();
+            StateHasChanged();
+        }
+    }
+    protected async Task Submit(int id)
+    {
+        Id = id;
+        await QueryId.InvokeAsync(Id);
+        Cancel();
+    }
+}
+

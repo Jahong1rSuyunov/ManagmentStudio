@@ -1,0 +1,42 @@
+﻿@inject ManagmentStudio.Cleant.Services.IQueryService queryService
+@inject MudBlazor.ISnackbar snackBar
+
+<MudDialog ContentStyle="height: 120px;width: 400px;">
+    <DialogContent >
+        <MudTextField T="string" @bind-Value="QueryName" Label="Query Name" Required="true"></MudTextField>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+
+    [CascadingParameter] 
+    public MudDialogInstance MudDialog { get; set; }
+    [Parameter]
+    public string conType { get; set; } = "";
+
+    private string? QueryName{ get; set; }
+
+    private async Task Submit()
+    {
+        if (!string.IsNullOrEmpty(QueryName))
+        {
+            var checkName = await queryService.CheckName(QueryName, conType);
+            if (checkName)
+            {
+                MudDialog.Close(DialogResult.Ok(QueryName));
+            }
+            else
+            {
+                snackBar.Add("Error: There is a Query with such a name!!!", Severity.Error);
+            }
+        }
+        else
+            snackBar.Add("Error: Empty Name", Severity.Error);
+
+            
+    }
+    private void Cancel() => MudDialog.Cancel();
+}

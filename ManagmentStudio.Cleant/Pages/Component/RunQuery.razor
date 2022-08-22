@@ -1,0 +1,113 @@
+﻿@using ManagmentStudio.Shared
+
+@inject ManagmentStudio.Cleant.Services.IQueryService queryService
+@inject ManagmentStudio.Cleant.Services.IServerService serverService
+@inject IDialogService DialogService
+@inject MudBlazor.ISnackbar snackBar
+
+
+<MudPaper Class="d-flex justify-start flex-grow-1 gap-4" Style="width:30%;" Elevation="0">
+    <MudSelect T="string" @bind-Value="getDb" Margin="Margin.Dense" Label="Db List" Variant="Variant.Outlined">
+        @foreach (var item in DbList)
+        {
+            <MudSelectItem T="string" Value="@item" />
+        }
+
+    </MudSelect>
+
+
+    <MudButton OnClick="QueryRun" Variant="Variant.Outlined" Color="Color.Success">Execute</MudButton>
+
+    <MudButton OnClick="SaveQuery" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Save" Color="Color.Info"  Size="Size.Small">Save Query</MudButton>
+</MudPaper>
+
+
+<MudTextField Label="Query" @bind-Value="query.QueryText" Variant="Variant.Filled" Lines="22" Style="@($"background-color:{Colors.Grey.Lighten5}")"></MudTextField>
+<hr />
+
+<MudSimpleTable Style="@($"overflow-x: auto; height:405px;background-color: {Colors.Grey.Lighten4};")">
+    <thead>
+        <tr>
+            @foreach (var col in dataTable.Columns)
+            {
+                <th>@col</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in dataTable.Rows)
+        {
+            <tr>
+                @foreach (var cell in row.Data)
+                {
+                    <td>@cell</td>
+                }
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+
+
+
+
+@code {
+
+    [Parameter]
+    public string? ConnectorType { get; set; }
+
+    [Parameter]
+    public int QueryId { get; set; }
+
+    private ResultSet dataTable = new ();
+    private List<string>? DbList = new();
+    private Query query { get; set; } 
+    private string? getDb { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        DbList = await serverService.GetDatabases();
+        StateHasChanged();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (QueryId != 0)
+        {
+            query = await queryService.GetQuery(QueryId);
+
+        }
+
+    }
+
+    private async Task QueryRun()
+    {
+        dataTable = await serverService.ExecuteQuery(getDb, query.QueryText);
+        StateHasChanged();
+    }
+    private async Task SaveQuery()
+    {
+        var parameters = new DialogParameters { ["conType"] = ConnectorType };
+        var dialog = DialogService.Show<SaveQueryDialog>("Save Query", parameters);
+        var resault = await dialog.Result;
+
+        if (!resault.Cancelled && resault.Data != null)
+        {
+            string? name = resault.Data.ToString();
+                Query newQuery = new Query()
+                {
+                    QueryName = name,
+                    QueryText = query?.QueryText,
+                    ConnectorType = ConnectorType
+                };
+                await queryService.Create(newQuery);
+            
+        }
+        StateHasChanged();
+    }
+
+
+
+
+}

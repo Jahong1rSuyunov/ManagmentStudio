@@ -1,0 +1,130 @@
+﻿@page "/"
+@using ManagmentStudio.Shared
+@using Microsoft.AspNetCore.WebUtilities
+@using Newtonsoft.Json
+@inject HttpClient _httpClient
+@inject ManagmentStudio.Cleant.Services.IServerService serverService
+@inject MudBlazor.ISnackbar snackBar
+@inject NavigationManager navManager
+@inject IDialogService DialogService
+
+<PageTitle>Connect</PageTitle>
+
+<MudContainer Style="height=250px;width=500px;" Class="center">
+    <MudCard Elevation="10">
+        <MudCardHeader>
+            <MudContainer>
+                <MudText Typo="Typo.h6">Connect Server</MudText>
+            </MudContainer>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTextField @bind-Value="ServerName" Required="true" Label="Server Name" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+            
+            <MudCheckBox @bind-Checked="@booleon">Server Autentication</MudCheckBox>
+
+            <MudForm>
+                <MudRadioGroup @onclick="@OnRadio" @bind-SelectedOption="@ConnectorType">
+                    <MudRadio Option="@("MSSQL")" Color="Color.Primary">MSSQL</MudRadio>
+                    <MudRadio Option="@("MySQL")" Color="Color.Primary">MySQL</MudRadio>
+                    <MudRadio Option="@("NpgSQL")" Color="Color.Primary">NpgSQL</MudRadio>
+
+                </MudRadioGroup>
+            </MudForm>
+            
+            <MudTextField @bind-Value="Login" Required="booleon" RequiredError="Loginni kiring" Disabled="booleon?false:true" Label="Login" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+            <MudTextField @bind-Value="Password" Required="booleon" InputType="InputType.Password" RequiredError="Parolni kiring" Disabled="booleon?false:true" Label="Password" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+            <MudTextField @bind-Value="Port" Class="@visible" Required="booleon" RequiredError="Portnini kiring" Disabled="booleon?false:true" Label="Port" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+            <br />
+            <MudButton Variant="Variant.Outlined" Color="Color.Success" OnClick="ConnectionString">Connected</MudButton>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private bool booleon { get; set; } = false;
+
+    private string? visible { get; set; }
+
+    private string? ServerName { get; set; }
+
+    private string? Login { get; set; }
+
+    private string? Password { get; set; }
+
+    private string? Port { get; set; }
+
+    private string ConnectorType { get; set; } = "MSSQL";
+
+    protected override async Task OnInitializedAsync()
+    {
+        OnRadio();
+    }
+
+    public async Task ConnectionString()
+    {
+        ServerSet serverSet = new();
+        string conString = "";
+        switch (ConnectorType)
+        {
+            case "MSSQL":
+                {
+                    if (booleon == true)
+                    {
+                        conString = $"server={ServerName};user id={Login};password={Password};";
+                    }
+                    else
+                    {
+                        conString = $"server={ServerName};Integrated Security=True;";
+                    }
+                }
+                break;
+            case "MySQL":
+                {
+                    if (booleon == true)
+                    {
+                        conString = $"server={ServerName};port={Port};user={Login};password={Password};";
+                    }
+                }
+                break;
+            case "NpgSQL":
+                {
+                    if (booleon == true)
+                    {
+                        conString = $"server={ServerName};port={Port};user={Login};password={Password};";
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+        serverSet.conString = conString;
+        serverSet.conType = ConnectorType;
+        var check = await serverService.CheckConnect(serverSet);
+        if (check)
+        {
+            var conParam = new Dictionary<string, string>
+                {
+                    ["connectorType"] = ConnectorType
+                };
+            navManager.NavigateTo(QueryHelpers.AddQueryString("index", conParam));
+            //navManager.NavigateTo("/test");
+        }
+        else
+        {
+            snackBar.Add("Serverga ulanishda xato Error ", Severity.Error);
+        }
+
+    }
+    private void OnRadio()
+    {
+        if (ConnectorType == "MSSQL")
+        {
+            visible = "invisible";
+        }
+        else
+        {
+            visible = "visible";
+        }
+    }
+}

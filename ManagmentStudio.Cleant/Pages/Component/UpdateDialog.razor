@@ -1,0 +1,35 @@
+﻿@using ManagmentStudio.Shared
+
+
+@inject ISnackbar Snackbar
+
+<MudDialog ContentStyle="height: 200px;width: 400px;">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Edit" Color="Color.Inherit" Class="mr-3 mb-n1"/>
+            Edit Query
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="@query.QueryName" Label="Query Name" />
+        <MudTextField @bind-Value="@query.QueryText" Label="Query Text" Lines="5" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Info" OnClick="UpdateQuery">Edit Query</MudButton>
+    </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; }
+
+    [Parameter] public Query query { get; set; } = new ();
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void UpdateQuery()
+    {
+        Snackbar.Add("Edited Query", Severity.Success);
+        MudDialog.Close(query);
+        
+    }
+}
